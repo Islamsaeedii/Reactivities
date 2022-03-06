@@ -1,9 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Application.Interfaces;
 using Domain;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Persistence;
 
 namespace Application.Activities
@@ -17,13 +15,25 @@ namespace Application.Activities
         public class Handler : IRequestHandler<Command>
         {
         private readonly DataContext _context;
-            public Handler(DataContext context)
+        private readonly IUserAccessor _userAccessor;
+            public Handler(DataContext context, IUserAccessor userAccessor)
             {
+            _userAccessor = userAccessor;
             _context = context;
             }
 
             public async Task<Unit> Handle(Command request, CancellationToken cancellationToken)
             {
+                var user = await _context.Users.FirstOrDefaultAsync(x => 
+                    x.UserName == _userAccessor.GetUserName()); //this is going to give us access to our user object and from this we can create
+                    var attendee = new ActivityAttendee
+                    {
+                        AppUser = user,
+                        Activity = request.Activity,
+                        IsHost = true
+                    };
+                    request.Activity.Attendees.Add(attendee);
+
                 _context.Activities.Add(request.Activity);
 
                 await _context.SaveChangesAsync();
